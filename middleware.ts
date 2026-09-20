@@ -1,35 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Simple HTTP Basic Auth gate — free on Vercel Hobby plan (no paid
-// "Deployment Protection" needed). Username can be anything; only the
-// password (set via the HUB_PASS environment variable in Vercel) is checked.
+const COOKIE_NAME = 'hub_session'
+
+// Custom-page password gate. The password itself never reaches the
+// browser's JS (checked server-side in /api/login), and the cookie that
+// proves a successful login is httpOnly, so it can't be read or copied by
+// client-side script either.
 export function middleware(req: NextRequest) {
-  const expected = process.env.HUB_PASS
+  const { pathname } = req.nextUrl
 
-  const auth = req.headers.get('authorization')
-
-  if (expected && auth) {
-    const [scheme, encoded] = auth.split(' ')
-    if (scheme === 'Basic' && encoded) {
-      try {
-        const decoded = Buffer.from(encoded, 'base64').toString('utf-8')
-        const separatorIndex = decoded.indexOf(':')
-        const password = separatorIndex >= 0 ? decoded.slice(separatorIndex + 1) : ''
-        if (password === expected) {
-          return NextResponse.next()
-        }
-      } catch {
-        // fall through to 401
-      }
-    }
+  // Always allow the login page itself and its API route through.
+  if (pathname === '/login' || pathname === '/api/login') {
+    return NextResponse.next()
   }
 
-  return new NextResponse('Авторизация қажет / Требуется авторизация', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Maktaaral", charset="UTF-8"',
-    },
-  })
+  const expected = process.env.HUB_PASS
+  const cookie = req.cookies.get(COOKIE_NAME)?.value
+
+  if (expected && cookie === expected) {
+    return NextResponse.next()
+  }
+
+  const loginUrl = new URL('/login', req.url)
+  loginUrl.searchParams.set('next', pathname)
+  return NextResponse.redirect(loginUrl)
 }
 
 export const config = {
