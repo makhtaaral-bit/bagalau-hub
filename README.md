@@ -37,3 +37,4 @@ HUB_PASS=сіздің-пароліңіз
    жасаңыз — әйтпесе middleware сайтты әрқашан жабық ұстайды.
 5. **Settings → Domains** бөлімінде `bagalau.jumis-maktaaral.kz` қосып,
    Vercel берген CNAME жазбасын Gohost.kz DNS аймағына қосыңыз.
+
